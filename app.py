@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 # 页面配置
 st.set_page_config(
-    page_title="待办事件管理器 (含截止日期)",
-    page_icon="📅",
+    page_title="待办事件管理器",
+    page_icon="✅",
     layout="centered"
 )
 
@@ -23,23 +23,8 @@ def add_task(task_content, priority, due_date):
     }
     st.session_state.tasks.append(new_task)
 
-# 标记任务完成
-def complete_task(index):
-    st.session_state.tasks[index]["完成状态"] = True
-
-# 删除任务
-def delete_task(index):
-    st.session_state.tasks.pop(index)
-
-# 检查任务是否临近截止（仅日期比较）
-def check_due_soon(due_date_str):
-    if due_date_str == "无":
-        return False
-    due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
-    return due_date - datetime.now().date() <= timedelta(days=1)
-
 # 主界面
-st.title("📅 待办事件管理器 (含截止日期)")
+st.title("✅ 待办事件管理器")
 st.write("数据临时存储，刷新页面会重置。")
 
 # 添加任务表单
@@ -65,23 +50,22 @@ else:
     incomplete_tasks = [task for task in st.session_state.tasks if not task["完成状态"]]
     incomplete_tasks.sort(key=lambda x: x["截止日期"] if x["截止日期"] != "无" else "9999-12-31")
     
-    for i, task in enumerate(incomplete_tasks):
-        original_index = st.session_state.tasks.index(task)  # 获取原始索引
+    for task in incomplete_tasks:
+        original_index = st.session_state.tasks.index(task)
         col1, col2, col3 = st.columns([6, 2, 2])
         with col1:
-            # 如果任务临近截止（1天内），显示红色警告
-            if check_due_soon(task["截止日期"]):
+            if task["截止日期"] != "无" and datetime.strptime(task["截止日期"], "%Y-%m-%d").date() <= datetime.now().date() + timedelta(days=1):
                 st.error(f"❗ **{task['内容']}** (截止: {task['截止日期']})")
             else:
                 st.write(f"**{task['内容']}**")
             st.caption(f"优先级: {task['优先级']} | 创建于: {task['创建时间']}")
         with col2:
             if st.button("完成", key=f"complete_{original_index}"):
-                complete_task(original_index)
+                st.session_state.tasks[original_index]["完成状态"] = True
                 st.rerun()
         with col3:
             if st.button("删除", key=f"delete_{original_index}"):
-                delete_task(original_index)
+                st.session_state.tasks.pop(original_index)
                 st.rerun()
         st.divider()
 
