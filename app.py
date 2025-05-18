@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 # 页面配置
 st.set_page_config(
     page_title="待办事件管理器 (含截止日期)",
-    page_icon="⏰",
+    page_icon="📅",
     layout="centered"
 )
 
@@ -17,8 +17,8 @@ def add_task(task_content, priority, due_date):
     new_task = {
         "内容": task_content,
         "优先级": priority,
-        "创建时间": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "截止日期": due_date.strftime("%Y-%m-%d %H:%M") if due_date else "无",
+        "创建时间": datetime.now().strftime("%Y-%m-%d"),
+        "截止日期": due_date.strftime("%Y-%m-%d") if due_date else "无",
         "完成状态": False
     }
     st.session_state.tasks.append(new_task)
@@ -31,16 +31,16 @@ def complete_task(index):
 def delete_task(index):
     st.session_state.tasks.pop(index)
 
-# 检查任务是否临近截止
+# 检查任务是否临近截止（仅日期比较）
 def check_due_soon(due_date_str):
     if due_date_str == "无":
         return False
-    due_date = datetime.strptime(due_date_str, "%Y-%m-%d %H:%M")
-    return due_date - datetime.now() < timedelta(hours=24)
+    due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+    return due_date - datetime.now().date() <= timedelta(days=1)
 
 # 主界面
-st.title("⏰ 待办事件管理器 (含截止日期)")
-st.write("使用 `st.session_state` 临时存储数据，刷新页面会重置。")
+st.title("📅 待办事件管理器 (含截止日期)")
+st.write("数据临时存储，刷新页面会重置。")
 
 # 添加任务表单
 with st.form("add_task_form"):
@@ -49,13 +49,10 @@ with st.form("add_task_form"):
     with col1:
         priority = st.selectbox("优先级", ["低", "中", "高"], index=1)
     with col2:
-        due_date = st.date_input("截止日期", min_value=datetime.today())
-        due_time = st.time_input("截止时间", value=datetime.now().time())
-        full_due_date = datetime.combine(due_date, due_time)
-    
+        due_date = st.date_input("截止日期", min_value=datetime.today().date())
     submitted = st.form_submit_button("添加任务")
     if submitted and task_content:
-        add_task(task_content, priority, full_due_date)
+        add_task(task_content, priority, due_date)
 
 # 显示任务列表
 st.subheader("我的任务")
@@ -72,9 +69,9 @@ else:
         original_index = st.session_state.tasks.index(task)  # 获取原始索引
         col1, col2, col3 = st.columns([6, 2, 2])
         with col1:
-            # 如果任务临近截止，显示红色警告
+            # 如果任务临近截止（1天内），显示红色警告
             if check_due_soon(task["截止日期"]):
-                st.error(f"⚠️ **{task['内容']}** (截止: {task['截止日期']})")
+                st.error(f"❗ **{task['内容']}** (截止: {task['截止日期']})")
             else:
                 st.write(f"**{task['内容']}**")
             st.caption(f"优先级: {task['优先级']} | 创建于: {task['创建时间']}")
@@ -94,7 +91,7 @@ else:
     if not completed_tasks:
         st.info("还没有完成的任务")
     else:
-        for i, task in enumerate(completed_tasks):
+        for task in completed_tasks:
             st.write(f"~~{task['内容']}~~")
             st.caption(f"完成于: {task['创建时间']} | 原截止: {task['截止日期']}")
             st.divider()
